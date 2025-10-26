@@ -1,64 +1,43 @@
 <template>
-  <v-card class="pa-6" elevation="3">
-    <h3 class="text-h6 font-weight-bold mb-4">{{ formTitle }}</h3>
-
-    <v-form @submit.prevent="handleSubmit">
-      <v-text-field label="Title" v-model="ticketData.title" required></v-text-field>
-      <v-textarea label="Description" v-model="ticketData.description" required></v-textarea>
-      <v-select
-        label="Priority"
-        :items="['Low', 'Medium', 'High']"
-        v-model="ticketData.priority"
-        required
-      ></v-select>
-      <v-select
-        label="Status"
-        :items="['Open', 'Pending', 'Resolved']"
-        v-model="ticketData.status"
-        required
-      ></v-select>
-
-      <v-row class="mt-4" justify="end">
-        <v-btn color="grey" class="mr-2" @click="$emit('cancel')">Cancel</v-btn>
-        <v-btn color="primary" type="submit">{{ buttonLabel }}</v-btn>
-      </v-row>
-    </v-form>
-  </v-card>
+  <form @submit.prevent="handleSubmit" class="space-y-3 p-6 border rounded shadow">
+    <input v-model="title" type="text" placeholder="Ticket Title" class="w-full p-2 border rounded"/>
+    <textarea v-model="description" placeholder="Description" class="w-full p-2 border rounded"></textarea>
+    <select v-model="status" class="w-full p-2 border rounded">
+      <option value="open">Open</option>
+      <option value="in-progress">In Progress</option>
+      <option value="closed">Closed</option>
+    </select>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+      Submit Ticket
+    </button>
+  </form>
 </template>
 
+
 <script setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
+import { db } from '@/firebase'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 
-const props = defineProps({
-  ticket: Object,
-  formTitle: {
-    type: String,
-    default: 'Create Ticket'
-  },
-  buttonLabel: {
-    type: String,
-    default: 'Submit'
+const title = ref('')
+const description = ref('')
+const status = ref('open')
+
+const handleSubmit = async () => {
+  try {
+    await addDoc(collection(db, 'tickets'), {
+      title: title.value,
+      description: description.value,
+      status: status.value,
+      createdAt: serverTimestamp()
+    })
+    title.value = ''
+    description.value = ''
+    status.value = 'open'
+    alert('Ticket created successfully!')
+  } catch (err) {
+    console.error(err)
+    alert('Error creating ticket')
   }
-})
-
-const emit = defineEmits(['submit', 'cancel'])
-
-const ticketData = ref({
-  title: '',
-  description: '',
-  priority: '',
-  status: ''
-})
-
-watch(
-  () => props.ticket,
-  (newVal) => {
-    if (newVal) ticketData.value = { ...newVal }
-  },
-  { immediate: true }
-)
-
-const handleSubmit = () => {
-  emit('submit', ticketData.value)
 }
 </script>
